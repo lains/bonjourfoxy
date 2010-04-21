@@ -27,6 +27,10 @@ INSTALL_FILES = /install.rdf \
                 /defaults/preferences/defaults.js \
                 /locale/en-US/bonjourfoxy.properties \
                 /locale/en-US/bonjourfoxy.dtd \
+                /locale/en-US/welcome.html \
+                /locale/de-DE/bonjourfoxy.properties \
+                /locale/de-DE/bonjourfoxy.dtd \
+                /locale/en-US/welcome.html \
                 /lib/${FF_MAJOR_VER}/BFDNSSDService.so \
                 /chrome.manifest \
                 /content/list.css \
@@ -44,7 +48,6 @@ INSTALL_FILES = /install.rdf \
                 /content/status_bw.png \
                 /content/transparent.gif \
                 /content/welcome.js \
-                /content/welcome.html \
                 /content/options.js \
                 /components/IBFDNSSDService.xpt \
                 /components/stub.js \
@@ -185,6 +188,7 @@ install:
 	install -d ${DESTDIR}${TARGETDIR}/skin
 	install -d ${DESTDIR}${TARGETDIR}/defaults/preferences
 	install -d ${DESTDIR}${TARGETDIR}/locale/en-US
+	install -d ${DESTDIR}${TARGETDIR}/locale/de-DE
 	install -d ${DESTDIR}${TARGETDIR}/lib/${FF_MAJOR_VER}
 	install -d ${DESTDIR}${TARGETDIR}/content
 	install -d ${DESTDIR}${TARGETDIR}/components
