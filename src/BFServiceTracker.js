@@ -68,8 +68,14 @@ BFServiceTracker.prototype = {
     },
     dnssdSvc: function()   {
         if (!this._dnssdSvc) {
-            this._dnssdSvc = Components.classes["@bonjourfoxy.net/BFDNSSDService;1"]
-                            .createInstance(Components.interfaces.IBFDNSSDService);
+            try {
+                this._dnssdSvc = Components.classes["@bonjourfoxy.net/BFDNSSDService;1"]
+                                .createInstance(Components.interfaces.IBFDNSSDService);
+                this.log("Created instance of BFDNSSDService");
+            }
+            catch (Err) {
+                this.log("Error creating BFDNSSDService instance: " + Err);
+            }
         }
         return this._dnssdSvc;
     },
@@ -77,7 +83,9 @@ BFServiceTracker.prototype = {
         return Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
     },
     log: function(text) {
-        this.consoleService().logStringMessage(text);
+        if (this.prefs().getBoolPref("log.console") == true) {
+            this.consoleService().logStringMessage("[BonjourFoxy] " + text);
+        }
     },
     _alertsPref: false,
     _updateAlertsPref: function(update)  {
@@ -120,6 +128,7 @@ BFServiceTracker.prototype = {
                         var eCallback = this.callInContext(this.eListener);
                         this._dnssdSvcEnum = dnssdSvc.enumerate(0, true, eCallback);
                         this._updateAlertsPref();
+                        this.log("init finished - enumerating browse domains");
                     });
                     this._initTimer.initWithCallback({notify: tCallback}, 500, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
                 }
@@ -196,7 +205,11 @@ BFServiceTracker.prototype = {
         this._allServices.sort(sortFn);
     },
     eListener: function(service, add, interfaceIndex, error, domainType, domain) {
-        if (error) return;
+        if (error) {
+            this.log(["enumerate called back with error #", error, "(",
+                      domainType, "/", domain, ")"].join(" "));
+            return;
+        }
         if (!this._browseDomains[domain])   {
             this._browseDomains[domain] = Object();
             this._browseDomains[domain].count = 0;
@@ -208,20 +221,37 @@ BFServiceTracker.prototype = {
                 var serviceObj = this._serviceCategories[i];
                 var serviceID = serviceObj.label + serviceObj.regtype;
                 var callback = this.callInContext(this.bListener);
-                domainObj[serviceID] = this.dnssdSvc().browse(0, serviceObj.regtype, domain, callback);
+                try {
+                    domainObj[serviceID] = this.dnssdSvc().browse(0, serviceObj.regtype, domain, callback);
+                    this.log("Added " + serviceObj.regtype + " browse instance for " + domain);
+                }
+                catch (Err) {
+                    this.log(["Failed to add browse instance for new domain: " + domain,
+                              "\n\n", Err].join(" "));
+                }
             }
         }
         if (domainObj.count > 1)    {
             for (i in this._serviceCategories) {
                 var serviceObj = this._serviceCategories[i];
                 var serviceID = serviceObj.label + serviceObj.type;
-                try { domainObj[serviceId].stop(); }
-                catch (e) {};
+                try {
+                    domainObj[serviceId].stop();
+                    this.log("Removed browse domain: " + domain);
+                }
+                catch (Err) {
+                    this.log(["Failed to removed browse instance for domain: " + domain,
+                              "\n\n", Err].join(" "));
+                };
             }
         }
     },
     bListener: function(service, add, interfaceIndex, error, serviceName, regtype, domain) {
-        if (error) return;
+        if (error) {
+            this.log(["browser called back with error #", error, "(",
+                      serviceName, "/", regtype, "/", domain, ")"].join(" "));
+            return;
+        }
         var stateHierarchy = [serviceName, domain, "subtypes"];
         var statePosition = this._services;
         var reorganise = false;
@@ -261,12 +291,14 @@ BFServiceTracker.prototype = {
             reorganise = true;
         }
         if (add && this._services[serviceName][domain].subtypes[label] == 1) {
+            this.log(["Service",serviceName,"in",domain,"in category",label].join(" ") + " now available");
             if (this._sendAlerts()) {
                 this.alert('Service Discovered', serviceName);
             }
             reorganise = true;
         }
         if (!add && this._services[serviceName].__count__ == 0)  {
+            this.log(["Service",serviceName,"in",domain,"in category",label].join(" ") + " no longer available");
             delete this._services[serviceName];
             reorganise = true;
         }
