@@ -29,7 +29,7 @@ bonjourfoxy.list = {
     },
     persistContainers: function()   {
         var opensbc = [];
-        for (i=0; i<bonjourfoxy.list.treeView.data.length; i++)  {
+        for (var i=0; i < bonjourfoxy.list.treeView.data.length; i++)  {
             if (bonjourfoxy.list.treeView.data[i].isOpen)    {
                 opensbc.push(bonjourfoxy.list.treeView.data[i].intlabel);
             }
@@ -89,8 +89,8 @@ bonjourfoxy.list = {
         }, 15000);
     },
     search: function() {
-        categories = bonjourfoxy.lib.ServiceTracker().getCategories();
-        for (i=0; i<categories.length; i++)    {
+        var categories = bonjourfoxy.lib.ServiceTracker().getCategories();
+        for (var i=0; i<categories.length; i++)    {
             var category = categories.queryElementAt(i, Components.interfaces.nsIVariant);
             bonjourfoxy.list.treeView.update(category);
         }
@@ -100,8 +100,8 @@ bonjourfoxy.list = {
             var services = [];
             var rawServices = bonjourfoxy.lib.ServiceTracker().getServices(category);
             var filter = document.getElementById("search-box").value;
-            for (i = 0; i < rawServices.length; i++)   {
-                rawService = rawServices.queryElementAt(i, Components.interfaces.nsIArray);
+            for (var i = 0; i < rawServices.length; i++)   {
+                var rawService = rawServices.queryElementAt(i, Components.interfaces.nsIArray);
                 var name = rawService.queryElementAt(0, Components.interfaces.nsIVariant);
                 var domain = rawService.queryElementAt(1, Components.interfaces.nsIVariant);
                 var label = name + " (" + domain + ")";
@@ -143,14 +143,14 @@ bonjourfoxy.list = {
             }
             var category = this.data[idx].intlabel;
             var toinsert = this.getServices(category);
-            for (i=0; i<toinsert.length; i++)   {
+            for (var i=0; i < toinsert.length; i++)   {
                 this.data.splice(idx + i + 1, 0, toinsert[i]);
             }
             this.treeBox.rowCountChanged(idx + 1, toinsert.length);
         },
         init: function()    {
-            categories = bonjourfoxy.lib.ServiceTracker().getCategories();
-            for (i=0; i < categories.length; i++)    {
+            var categories = bonjourfoxy.lib.ServiceTracker().getCategories();
+            for (var i=0; i < categories.length; i++)    {
                 var intlabel = categories.queryElementAt(i,Components.interfaces.nsIVariant);
                 var uilabel = bonjourfoxy.lib.uistring("serviceLabel_" + intlabel);
                 this.data.push({
@@ -177,7 +177,7 @@ bonjourfoxy.list = {
             if (category == null) { return; }
             // find the idx
             var categoryIdx = -1;
-            for (i=0; i<this.data.length; i++)  {
+            for (var i=0; i < this.data.length; i++)  {
                 var item = this.data[i];
                 if (item.isContainer && item.intlabel == category) {
                     if (!item.isOpen)   { return; }
@@ -204,7 +204,7 @@ bonjourfoxy.list = {
         setTree: function(treeBox)         { this.treeBox = treeBox; },
         getCellText: function(idx, column) { return this.data[idx].label; },
         isContainer: function(idx)         { return this.data[idx].isContainer; },
-        isContainerOpen: function(idx)     { return this.data[idx].isOpen; },
+        isContainerOpen: function(idx)     { return this.data[idx].isOpen || false; },
         isContainerEmpty: function(idx)    { return bonjourfoxy.lib.ServiceTracker().countServices(this.data[idx].intlabel) == 0; },
         isSeparator: function(idx)         { return false; },
         isSorted: function()               { return false; },
