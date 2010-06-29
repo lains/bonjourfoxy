@@ -1,0 +1,134 @@
+<html>
+<head>
+<style>
+body {
+    font-family: "Helvetica Neue", Helvetica, "MgOpen Moderna", sans-serif;
+    background: #fdfdfd;
+}
+h1 { color: #aa0000; }
+h1, h2, h3 {
+    margin: 0;
+    padding: 0;
+}
+h2 { font-size: 1.5em; }
+h3 { font-size: 1em; }
+div#left {
+    width: 20%;
+    float: left;
+    position: fixed; 
+}
+div#right {
+    float: right;
+    width: 80%;
+}
+table {
+    border-collapse:collapse;
+    width: 100%; 
+}
+table th { text-align: left; }
+table th, table td {
+    border-bottom: 1px solid #eee;
+    padding: 0 0.5em; 
+}
+button {
+    display: block;
+    min-width: 10em;
+}
+</style>
+<script type="text/javascript" src="namespace.js"></script>
+<script type="text/javascript" src="lib.js"></script>
+<script>
+bonjourfoxy.stLogs = {
+    consoleService: null,
+    initialize: function() {
+        bonjourfoxy.stLogs.consoleService = bonjourfoxy.lib.consoleService();
+        var outMessages = {};
+        bonjourfoxy.stLogs.consoleService.getMessageArray(outMessages, {});
+        var oldMessages = outMessages.value || [];
+        for (var i=0; i<oldMessages.length; i++) {
+            var oldMessage = oldMessages[i].message;
+            bonjourfoxy.stLogs.maybeLogMessage(oldMessage);
+        }
+        bonjourfoxy.stLogs.consoleService.registerListener(bonjourfoxy.stLogs.consoleListener);
+        var logTogglerBtn = document.getElementById("logToggler");
+        logTogglerBtn.addEventListener("click", bonjourfoxy.stLogs.toggleLogging, false);
+        bonjourfoxy.stLogs.setLogTogglerBtnText();
+    },
+    shutdown: function() {
+        bonjourfoxy.stLogs.consoleService.unregisterListener(bonjourfoxy.stLogs.consoleListener);
+    },
+    isLogEnabled: function() {
+        return bonjourfoxy.lib.userPrefs().getBoolPref("log.console") == true;
+    },
+    setLogTogglerBtnText: function() {
+        var logActive = bonjourfoxy.stLogs.isLogEnabled();
+        var logTogglerBtn = document.getElementById("logToggler");
+        var logTogglerBtnText = (logActive ? "Dis" : "En") + "able BFServiceTracker Logging";
+        logTogglerBtn.innerHTML = logTogglerBtnText;
+        logTogglerBtn.addEventListener("click", bonjourfoxy.stLogs.toggleLogging, false);    
+    },
+    toggleLogging: function() {
+        var newStatus = !bonjourfoxy.stLogs.isLogEnabled();
+        bonjourfoxy.lib.userPrefs().setBoolPref("log.console", newStatus);
+        bonjourfoxy.stLogs.setLogTogglerBtnText();
+    },
+    consoleListener: {
+        observe: function( aMessage ) {
+            var message = aMessage.message;
+            bonjourfoxy.stLogs.maybeLogMessage(message);
+        },
+        QueryInterface: function (iid) {
+            if (!iid.equals(Components.interfaces.nsIConsoleListener) &&
+                    !iid.equals(Components.interfaces.nsISupports)) {
+                throw Components.results.NS_ERROR_NO_INTERFACE;
+            }
+            return this;
+        }
+    },
+    maybeLogMessage: function(message) {
+        var logMsg = message.match(/bonjourfoxy/i) ||
+                     message.match(/bfdnssd/i);
+        if (logMsg) {
+            bonjourfoxy.stLogs.log(message);
+        }
+    },
+    log: function(Text) {
+        var logTbody = document.getElementById("tbodyLog");
+        var newRow = document.createElement("tr");
+        var entryCell = document.createElement("td");
+        entryCell.innerHTML = Text;
+        newRow.appendChild(entryCell);
+        logTbody.appendChild(newRow);
+    },
+    clearLog: function() {
+        var logTbody = document.getElementById("tbodyLog");
+        while (logTbody.childNodes.length > 0) {
+            logTbody.removeChild(logTbody.childNodes[0]);
+        }
+    }
+};
+
+
+window.addEventListener("load", bonjourfoxy.stLogs.initialize, false);
+window.addEventListener("unload", bonjourfoxy.stLogs.shutdown, false);
+</script>
+</head>
+<body>
+<div id="wrap">
+<div id="left">
+<h1>BonjourFoxy</h1>
+<h2>Diagnostic Logs</h1>
+<button id="logToggler"></button>
+</div>
+<div id="right">
+<table>
+<thead>
+<tr><th>Log Entry</th></tr>
+</thead>
+<tbody id="tbodyLog">
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>
