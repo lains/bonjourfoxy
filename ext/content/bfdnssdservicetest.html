@@ -1,0 +1,254 @@
+<html>
+<head>
+<style>
+body {
+    font-family: "Helvetica Neue", Helvetica, "MgOpen Moderna", sans-serif;
+    background: #fdfdfd;
+}
+h1 { color: #aa0000; }
+h1, h2, h3 {
+    margin: 0;
+    padding: 0;
+}
+h2 { font-size: 1.1em; }
+h3 { font-size: 1em; }
+div#left {
+    width: 20%;
+    float: left;
+    position: fixed; 
+}
+div#right {
+    float: right;
+    width: 80%;
+}
+table {
+    border-collapse:collapse;
+    width: 100%; 
+}
+table th { text-align: left; }
+table th, table td {
+    border-bottom: 1px solid #eee;
+    padding: 0 0.5em; 
+}
+button {
+    display: block;
+    min-width: 10em;
+}
+</style>
+<script>
+var bf = {};
+bf.component = null;
+bf.instances = {};
+
+/* logging functions */
+
+bf.padUnit = function(Unit) {
+    return ("" + Unit).length == 1 ? "0" + Unit : Unit;
+}
+
+bf.log = function(Component, Text) {
+    var logTbody = document.getElementById("tbodyLog");
+    var newRow = document.createElement("tr");
+    var timeCell = document.createElement("td");
+    var funCell = document.createElement("td");
+    var entryCell = document.createElement("td");
+    var timeNow = new Date();
+    var hour = bf.padUnit(timeNow.getHours());
+    var minute = bf.padUnit(timeNow.getMinutes());
+    var second = bf.padUnit(timeNow.getSeconds());
+    var timeStamp = [hour,minute,second].join(":");
+    entryCell.innerHTML = Text;
+    funCell.innerHTML = Component;
+    timeCell.innerHTML = timeStamp;
+    newRow.appendChild(timeCell);
+    newRow.appendChild(funCell);
+    newRow.appendChild(entryCell);
+    logTbody.appendChild(newRow);
+}
+
+bf.clearLog = function() {
+    var logTbody = document.getElementById("tbodyLog");
+    while (logTbody.childNodes.length > 0) {
+        logTbody.removeChild(logTbody.childNodes[0]);
+    }
+}
+
+/* enumerate functions */
+
+bf.enumerateCallback = function(svc, add, ifIndex, error, rdomaintype, rdomain){
+    if (!error) {
+        var domainTypeTxt = rdomaintype ?  "browse" : "registration";
+        var addRmvTxt = add ? "added" : "removed";
+        bf.log("enumerate", ["call back fired -", addRmvTxt, domainTypeTxt,
+                             "domain", rdomain].join(" "));
+    } else {
+        bf.log("enumerate", "call back fired - error #" + error);
+    }
+};
+
+bf.testEnumerate = function() {
+    try {
+        bf.instances.enumerate = bf.component.enumerate(0, false,
+                                                        bf.enumerateCallback);
+        bf.log("enumerate", "created registration instance");
+        bf.instances.enumerate = bf.component.enumerate(0, true,
+                                                        bf.enumerateCallback);
+        bf.log("enumerate", "created browse instance");
+    }
+    catch(err) {
+        bf.log("enumerate", "error creating instance " + err);
+    }
+}
+
+/* browse functions */
+
+bf.browseCallback = function(svc, add, ifIndex, err, sName, rType, domain) {
+    if (!err) {
+        bf.log("browse", [
+            "callback fired - ",
+            (add ? "add" : "remove"),
+            ifIndex,
+            sName,
+            rType,
+            domain
+            ].join(" "));
+    } else {
+        bf.log("browse", "call back fired - error #" + error);
+    }
+};
+
+bf.testBrowse = function() {
+    try {
+        bf.instances.browse = bf.component.browse(0, "_services._dns-sd._udp",
+                                                  "", bf.browseCallback);
+        bf.log("browse", "created browse instance");
+    }
+    catch(err) {
+        bf.log("browse", "error creating instance " + err);
+    }
+}
+
+/* register functions */
+
+bf.regCallback = function(svc, add, error, sName, rType, rDomain) {
+    if (!error) {
+        bf.log("register", ["callback -", sName,
+                            (add ? "advertising in" : "removed from"),
+                            "registration domain", rDomain].join(" "));
+    } else {
+        bf.log("register", "call back fired - error #" + error);
+    }
+};
+
+bf.testRegister = function() {
+    try {
+        bf.instances.register = bf.component.register(0, "BonjourFoxyTest",
+                                                      "_http._tcp", "",
+                                                      "bonjourfoxy.net", 80,
+                                                      "path", "/index.html",
+                                                      bf.regCallback);
+        bf.log("register", "created register instance");
+    }
+    catch(err) {
+        bf.log("register", "error creating instance " + err);
+    }
+}
+
+/* resolve functions */
+
+bf.resolveCallback = function(svc, ifIndex, err, fqdn, hostname, port, key, value){
+    if (!err) {
+        bf.log("resolve", ["callback fired - resolved ",
+                           "interface: " + ifIndex, "hostname: " + hostname,
+                           "port: " + port, "key: " + key, "value: " + value
+                          ].join(" "));
+    } else {
+        bf.log("resolve", "call back fired - error #" + error);
+    }
+}
+
+bf.testResolve = function() {
+    try {
+        bf.instances.resolve = bf.component.resolve(0, "BonjourFoxyTest",
+                                                    "_http._tcp", "local.",
+                                                    "path", bf.resolveCallback);
+        bf.log("resolve", "created resolve instance");
+    }
+    catch(err) {
+        bf.log("resolve", "error creating instance " + err);
+    }
+}
+
+/* start/stop all test functions */
+
+bf.testAll = function() {
+    bf.testEnumerate();
+    bf.testBrowse();
+    bf.testRegister();
+    bf.testResolve();
+}
+
+bf.stopTests = function(alert) {
+    for (var property in bf.instances) {
+        try {
+            bf.instances[property].stop();
+            if (!alert) {
+                bf.log(property, "stopped");
+            }
+        }
+        catch(err) {
+            if (alert) {
+                window.alert("Error stopping " + property + ":\n\n" + err);
+            } else {
+                logFun(property, "error stopping " + err);
+            }
+        }
+    }
+};
+
+/* loader/unloader functions */
+
+bf.initialize = function() {
+    try {
+        bf.component = Components.classes["@bonjourfoxy.net/BFDNSSDService;1"]
+                       .createInstance(Components.interfaces.IBFDNSSDService);
+        bf.log("BFDNSSDService", "created ");
+    }
+    catch(err) {
+        bf.log("BFDNSSDService", "error creating - " + err);
+    }
+}
+
+bf.shutdown = function() {
+    bf.stopTests(true);
+}
+
+window.addEventListener("load", bf.initialize, false);
+window.addEventListener("unload", bf.shutdown, false);
+</script>
+</head>
+<body>
+<div id="wrap">
+<div id="left">
+<h1>BonjourFoxy</h1>
+<h2>BFDNSSDService Tests</h1>
+<button onclick="bf.testEnumerate()";><h3>Enumerate</h3></button>
+<button onclick="bf.testBrowse()";><h3>Browse</h3></button>
+<button onclick="bf.testRegister()";><h3>Register</h3></button>
+<button onclick="bf.testResolve()";><h3>Resolve</h3></button>
+<button onclick="bf.testAll();"><h3>All</h3></button>
+<button onclick="bf.stopTests();"><h3>Stop All</h3></button>
+<button onclick="bf.clearLog();"><h3>Clear Log</h3></button>
+</div>
+<div id="right">
+<table>
+<thead>
+<tr><th>Time</th><th>Function</th><th>Entry</th></tr>
+</thead>
+<tbody id="tbodyLog">
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>
