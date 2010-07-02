@@ -84,7 +84,7 @@ BFServiceTracker.prototype = {
     },
     log: function(text) {
         if (this.prefs().getBoolPref("log.console") == true) {
-            this.consoleService().logStringMessage("[BonjourFoxy] " + text);
+            this.consoleService().logStringMessage("[BFServiceTracker] " + text);
         }
     },
     _alertsPref: false,
@@ -142,14 +142,20 @@ BFServiceTracker.prototype = {
             category.setFromVariant(this._serviceCategories[i].label);
             outCategories.appendElement(category, 0);
         }
+        var catCount = outCategories.length;
+        this.log("getCategories(): returning " + catCount);
         return outCategories;
     },
     countServices: function(category) {
+        var retValue = 0;
         if (category.toUpperCase() == "__ALL__")  {
-            return this._allServices.length;
+            retValue = this._allServices.length;
         } else {
-            return this._sortedServices[category] ? this._sortedServices[category].length : 0;
+            retValue = this._sortedServices[category] ?
+                        this._sortedServices[category].length : 0;
         }
+        this.log("countServices(" + category + "): returning " + retValue);
+        return retValue;
     },
     getServices: function(category) {
         var services = this._newArray();
@@ -171,9 +177,11 @@ BFServiceTracker.prototype = {
             pair.appendElement(domain, 0);
             services.appendElement(pair, 0);
         }
+        this.log("getServices(" + category + "): returning " + services.length);
         return services;
     },
     _organiseServices: function()    {
+        this.log("_organiseServices");
         var sortFn = function(a,b) { return a.label == b.label ? 0 : (a.label < b.label ? -1 : 1); }
         for (i in this._serviceCategories)   {
             var subtype = this._serviceCategories[i].label;
@@ -190,7 +198,7 @@ BFServiceTracker.prototype = {
                     }
                 } else {
                     for (subtype in subtypes)  {
-                        if (subtype != "Websites")  {
+                        if (subtype != "website")  {
                             this._sortedServices[subtype].push(serviceObj);
                         }
                     }
@@ -206,7 +214,7 @@ BFServiceTracker.prototype = {
     },
     eListener: function(service, add, interfaceIndex, error, domainType, domain) {
         if (error) {
-            this.log(["enumerate called back with error #", error, "(",
+            this.log(["Enumerate called back with error #", error, "(",
                       domainType, "/", domain, ")"].join(" "));
             return;
         }
@@ -248,7 +256,7 @@ BFServiceTracker.prototype = {
     },
     bListener: function(service, add, interfaceIndex, error, serviceName, regtype, domain) {
         if (error) {
-            this.log(["browser called back with error #", error, "(",
+            this.log(["Browser called back with error #", error, "(",
                       serviceName, "/", regtype, "/", domain, ")"].join(" "));
             return;
         }
