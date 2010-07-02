@@ -64,7 +64,8 @@ bonjourfoxy.list = {
                 linkTarget="tab";
             }
         }
-        var b = resolverContext = Object();
+        var b = Object();
+        var resolverContext = Object();
         resolverContext.resolved = false;
         resolverContext.label = service.label;
         resolverContext.target = linkTarget;
@@ -157,6 +158,7 @@ bonjourfoxy.list = {
                     label: uilabel,
                     intlabel: intlabel,
                     isContainer: true,
+                    isOpen: false,
                 });
                 document.getElementById("serviceList").view = bonjourfoxy.list.treeView;
             }
@@ -204,8 +206,11 @@ bonjourfoxy.list = {
         setTree: function(treeBox)         { this.treeBox = treeBox; },
         getCellText: function(idx, column) { return this.data[idx].label; },
         isContainer: function(idx)         { return this.data[idx].isContainer; },
-        isContainerOpen: function(idx)     { return this.data[idx].isOpen || false; },
-        isContainerEmpty: function(idx)    { return bonjourfoxy.lib.ServiceTracker().countServices(this.data[idx].intlabel) == 0; },
+        isContainerOpen: function(idx)     { return this.data[idx].isOpen; },
+        isContainerEmpty: function(idx)    {
+            var bfSt = bonjourfoxy.lib.ServiceTracker();
+            return bfSt.countServices(this.data[idx].intlabel) == 0;
+        },
         isSeparator: function(idx)         { return false; },
         isSorted: function()               { return false; },
         isEditable: function(idx, column)  { return false; },
@@ -242,8 +247,7 @@ bonjourfoxy.list = {
         },
         getImageSrc: function(idx, column) {},
         getProgressMode : function(idx,column) {},
-        getCellValue: function(idx, column) {
-        },
+        getCellValue: function(idx, column) {},
         cycleHeader: function(col, elem) {},
         selectionChanged: function() {},
         cycleCell: function(idx, column) {},
