@@ -87,7 +87,8 @@ bonjourfoxy.stLogs = {
     },
     maybeLogMessage: function(message) {
         var logMsg = message.match(/bonjourfoxy/i) ||
-                     message.match(/bfdnssd/i);
+                     message.match(/bfdnssd/i) || 
+                     message.match(/bfservicetracker/i);
         if (logMsg) {
             bonjourfoxy.stLogs.log(message);
         }
