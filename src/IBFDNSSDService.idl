@@ -16,6 +16,7 @@
  */
 
 #include "nsISupports.idl"
+#include "nsIArray.idl"
 
 interface IBFDNSSDService;
 
@@ -38,7 +39,7 @@ interface IBFDNSSDBrowseListener : nsISupports
 interface IBFDNSSDResolveListener : nsISupports
 {
 	void
-	onResolve( in IBFDNSSDService service, in long interfaceIndex, in long error, in AString fullname, in AString host, in long port, in AString key, in AString value );
+	onResolve( in IBFDNSSDService service, in long interfaceIndex, in long error, in AString fullname, in AString host, in long port, in nsIArray kvPairs );
 };
 
 
@@ -59,10 +60,10 @@ interface IBFDNSSDService : nsISupports
 	browse( in long interfaceIndex, in AString regtype, in AString domain, in IBFDNSSDBrowseListener listener );
 
 	IBFDNSSDService
-	resolve( in long interfaceIndex, in AString name, in AString regtype, in AString domain, in AString txtKey, in IBFDNSSDResolveListener listener );
+	resolve( in long interfaceIndex, in AString name, in AString regtype, in AString domain, in IBFDNSSDResolveListener listener );
 
 	IBFDNSSDService
-	register( in long interfaceIndex, in AString name, in AString regtype, in AString domain, in AString targetHost, in long targetPort, in AString txtKey, in AString txtValue, in IBFDNSSDRegisterListener listener );
+	register( in long interfaceIndex, in AString name, in AString regtype, in AString domain, in AString targetHost, in long targetPort, in nsIArray keyValues, in IBFDNSSDRegisterListener listener );
 
 	void
 	stop();

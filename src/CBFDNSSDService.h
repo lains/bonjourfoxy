@@ -26,6 +26,8 @@
 #include "nsIRunnable.h"
 #include "prtpool.h"
 #include "nsStringAPI.h"
+#include "nsIMutableArray.h"
+#include "nsIVariant.h"
 #include <dns_sd.h>
 #include <stdio.h>
 #include <string>

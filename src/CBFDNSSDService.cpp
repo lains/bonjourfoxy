@@ -18,6 +18,7 @@
 #include "CBFDNSSDService.h"
 #include "nsThreadUtils.h"
 #include "nsIEventTarget.h"
+#include "nsArrayUtils.h"
 #include "private/pprio.h"
 #include <string>
 #include <stdio.h>
@@ -226,7 +227,7 @@ exit:
 
 /* IBFDNSSDService resolve (in long interfaceIndex, in AString name, in AString regtype, in AString domain, in IBFDNSSDResolveListener listener); */
 NS_IMETHODIMP
-CBFDNSSDService::Resolve(PRInt32 interfaceIndex, const nsAString & name, const nsAString & regtype, const nsAString & domain, const nsAString & key, IBFDNSSDResolveListener *listener, IBFDNSSDService **_retval NS_OUTPARAM)
+CBFDNSSDService::Resolve(PRInt32 interfaceIndex, const nsAString & name, const nsAString & regtype, const nsAString & domain, IBFDNSSDResolveListener *listener, IBFDNSSDService **_retval NS_OUTPARAM)
 {
 	CBFDNSSDService	*	service	= NULL;
 	DNSServiceErrorType dnsErr	= 0;
@@ -248,7 +249,6 @@ CBFDNSSDService::Resolve(PRInt32 interfaceIndex, const nsAString & name, const n
 		err = NS_ERROR_FAILURE;
 		goto exit;
 	}
-	service->m_svcTxtKey.Assign( key );
 	dnsErr = DNSServiceResolve( &service->m_sdRef, 0, interfaceIndex, NS_ConvertUTF16toUTF8( name ).get(), NS_ConvertUTF16toUTF8( regtype ).get(), NS_ConvertUTF16toUTF8( domain ).get(), ( DNSServiceResolveReply ) ResolveReply, service);
 	if ( dnsErr != kDNSServiceErr_NoError )
 	{
@@ -286,18 +286,16 @@ exit:
 	return err;
 }
 
-/* IBFDNSSDService register (in long interfaceIndex, in AString name, in AString regtype, in AString domain, in AString key, in AString value, in IBFDNSSDRegisterListener listener); */
+/* IBFDNSSDService register (in long interfaceIndex, in AString name, in AString regtype, in AString domain, in nsIArray keyValuePairs, in IBFDNSSDRegisterListener listener); */
 NS_IMETHODIMP
-CBFDNSSDService::Register(PRInt32 interfaceIndex, const nsAString & name, const nsAString & regtype, const nsAString & domain, const nsAString & targetHost, PRInt32 targetPort, const nsAString & txtKey, const nsAString & txtValue, IBFDNSSDRegisterListener *listener, IBFDNSSDService **_retval NS_OUTPARAM)
+CBFDNSSDService::Register(PRInt32 interfaceIndex, const nsAString & name, const nsAString & regtype, const nsAString & domain, const nsAString & targetHost, PRInt32 targetPort, nsIArray* keyValuePairs, IBFDNSSDRegisterListener *listener, IBFDNSSDService **_retval NS_OUTPARAM)
 {
 	CBFDNSSDService	*	service	= NULL;
 	DNSServiceErrorType dnsErr	= 0;
 	nsresult			err		= 0;
-
+	PRUint32 length;
 	*_retval = NULL;
 	TXTRecordRef txt;
-	TXTRecordCreate(&txt,0,0);
-	void* txtRecordValue = ToNewUTF8String( txtValue );
 
 	try
 	{
@@ -313,11 +311,31 @@ CBFDNSSDService::Register(PRInt32 interfaceIndex, const nsAString & name, const 
 		err = NS_ERROR_FAILURE;
 		goto exit;
 	}
-	dnsErr = TXTRecordSetValue(&txt, NS_ConvertUTF16toUTF8( txtKey ).get(), txtValue.Length(), txtRecordValue);
-	if ( dnsErr != kDNSServiceErr_NoError )
-	{
-	    err = NS_ERROR_FAILURE;
-	    goto exit;
+
+	TXTRecordCreate(&txt,0,NULL);
+	keyValuePairs->GetLength(&length);
+	for (PRUint32 i=0; i<length; ++i) {
+		nsCOMPtr<nsIVariant> kvPair = do_QueryElementAt(keyValuePairs, i);
+		nsString kv;
+		kvPair->GetAsAString(kv);
+		PRInt32 offset = kv.FindChar('=');
+		if (offset > 0) {
+			const nsAString& keyName = Substring(kv, 0, offset);
+			const nsAString& keyValue = Substring(kv, offset + 1, kv.Length());
+			dnsErr = TXTRecordSetValue(&txt, ToNewUTF8String(keyName), NS_ConvertUTF16toUTF8(keyValue).Length(), NS_ConvertUTF16toUTF8(keyValue).get());
+			if ( dnsErr != kDNSServiceErr_NoError )
+			{
+				err = NS_ERROR_FAILURE;
+				goto exit;
+			}
+		} else {
+			dnsErr = TXTRecordSetValue(&txt, ToNewUTF8String(kv), 0, NULL);
+			if ( dnsErr != kDNSServiceErr_NoError )
+			{
+				err = NS_ERROR_FAILURE;
+				goto exit;
+			}
+		}
 	}
 	dnsErr = DNSServiceRegister( &service->m_sdRef, interfaceIndex, 0, NS_ConvertUTF16toUTF8( name ).get(), NS_ConvertUTF16toUTF8( regtype ).get(), NS_ConvertUTF16toUTF8( domain ).get(), NS_ConvertUTF16toUTF8( targetHost ).get(), htons(targetPort), TXTRecordGetLength(&txt), TXTRecordGetBytesPtr(&txt), ( DNSServiceRegisterReply ) RegisterReply, service);
 	if ( dnsErr != kDNSServiceErr_NoError )
@@ -499,35 +517,51 @@ CBFDNSSDService::ResolveReply
 
 		if ( listener != NULL )
 		{
-			std::string		value = "";
-			char txtKey[256];
-			const void	*	txtValue = NULL;
-			uint8_t			txtValueLen = 0;
-			
-			if (self->m_svcTxtKey == NS_LITERAL_STRING(""))
-			{
-				TXTRecordGetItemAtIndex( txtLen, txtRecord, 1, 256, txtKey, &txtValueLen, &txtValue);
-				self->m_svcTxtKey.Assign( NS_ConvertUTF8toUTF16( txtKey ) );
-			}
-			else 
-			{
-				txtValue = TXTRecordGetValuePtr( txtLen, txtRecord, NS_ConvertUTF16toUTF8 ( self->m_svcTxtKey ).get(), &txtValueLen );
-			}
-			if ( txtValue && txtValueLen )
-			{
-				char * temp;
-				
-				temp = new char[ txtValueLen + 1 ];
-				
-				if ( temp )
+			uint16_t recInc = 0;
+			uint16_t recCount = TXTRecordGetCount(txtLen, txtRecord);
+			nsCOMPtr<nsIMutableArray> keyValuePairs = do_CreateInstance(NS_ARRAY_CONTRACTID);
+			for (recInc = 0; recInc < recCount; recInc++) {
+				nsAutoString outValue = NS_LITERAL_STRING("");
+				nsCOMPtr<nsIWritableVariant> keyValuePair = do_CreateInstance(NS_VARIANT_CONTRACTID);
+				char			txtKey[256];
+				uint8_t			txtBytesLen = 0;
+				const void		* txtBytes = NULL;
+				TXTRecordGetItemAtIndex( txtLen, txtRecord, recInc, 256, txtKey, &txtBytesLen, &txtBytes);
+				if (txtBytesLen == 0) 
+					{
+					outValue.Assign(NS_ConvertUTF8toUTF16(txtKey));
+					if (txtBytes != NULL)
+					{
+						// Key with empty value
+						outValue.Append(NS_LITERAL_STRING("="));
+					}
+					else
+					{
+						// Key with no value
+					}
+				}
+				else if (txtBytes != NULL && txtBytesLen != 0)
 				{
-					memset( temp, 0, txtValueLen + 1 );
-					memcpy( temp, txtValue, txtValueLen );
-					value = temp;
+					// Key with value
+					char			* temp;
+					char			txtKey[256];
+					std::string		txtValue = "";
+					const void		* txtBytes = NULL;
+					uint8_t			txtBytesLen = 0;
+					TXTRecordGetItemAtIndex( txtLen, txtRecord, recInc, 256, txtKey, &txtBytesLen, &txtBytes);
+					temp = new char[ txtBytesLen + 1 ];
+					memset( temp, 0, txtBytesLen + 1 );
+					memcpy( temp, txtBytes, txtBytesLen );
+					txtValue = temp;
+					outValue.Assign(NS_ConvertUTF8toUTF16(txtKey));
+					outValue.Append(NS_LITERAL_STRING("="));
+					outValue.Append(NS_ConvertUTF8toUTF16(temp));
 					delete [] temp;
 				}
+				keyValuePair->SetAsAString(outValue);
+				keyValuePairs->AppendElement(keyValuePair, PR_FALSE);
 			}
-			listener->OnResolve( self, interfaceIndex, errorCode, NS_ConvertUTF8toUTF16( fullname ), NS_ConvertUTF8toUTF16( hosttarget ) , ntohs( port ), self->m_svcTxtKey, NS_ConvertUTF8toUTF16( value.c_str() ) );
+			listener->OnResolve( self, interfaceIndex, errorCode, NS_ConvertUTF8toUTF16( fullname ), NS_ConvertUTF8toUTF16( hosttarget ) , ntohs( port ), keyValuePairs );
 		}
 	}
 }

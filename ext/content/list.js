@@ -69,11 +69,23 @@ bonjourfoxy.list = {
         resolverContext.resolved = false;
         resolverContext.label = service.label;
         resolverContext.target = linkTarget;
-        resolverContext.resolver = bonjourfoxy.lib.DNSSDService().resolve(0, service.name, "_http._tcp.", service.domain, "path", function(service, interfaceIndex, error, fqdn, hostname, port, key, value) {
+        resolverContext.resolver = bonjourfoxy.lib.DNSSDService().resolve(0, service.name, "_http._tcp.", service.domain, function(service, interfaceIndex, error, fqdn, hostname, port, keyValues) {
+            var pathValue = "";
+            var pathMatch = /^path=(.*)$/;
+            for (var i = 0; i < keyValues.length; i++) {
+                var keyValue = keyValues.queryElementAt(i, Components.interfaces.nsIVariant);
+                var pathMatches = pathMatch(keyValue);
+                if (pathMatches != null) {
+                    if (pathMatches[1]) {
+                        pathValue = pathMatches[1];
+			break;
+                    }
+                }
+            }
             var rc = resolverContext;
             if(!rc.resolved) {
                 hostname = hostname.charAt(hostname.length-1) == "." ? hostname.substr(0, hostname.length-1) : hostname;
-                var path = value.charAt(0) == '/' ? value : '/' + value;
+                var path = pathValue.charAt(0) == '/' ? pathValue : '/' + pathValue;
                 bonjourfoxy.lib.openLink(["http://", hostname, ':', port, path].join(""), rc.target);
             }
             rc.resolved = true;

@@ -65,7 +65,7 @@ bonjourfoxy.browser = {
         bonjourfoxy.browser.resolverContext.resolved = false;
         try { bonjourfoxy.browser.resolver.stop(); }
         catch (e) {}
-        bonjourfoxy.browser.resolver = bonjourfoxy.browser.dnssd.resolve(interfaceIndex, serviceName, regtype, domain, "", bonjourfoxy.lib.callInContext(bonjourfoxy.browser.resolveListener));
+        bonjourfoxy.browser.resolver = bonjourfoxy.browser.dnssd.resolve(interfaceIndex, serviceName, regtype, domain, bonjourfoxy.lib.callInContext(bonjourfoxy.browser.resolveListener));
         try { window.clearTimeout(bonjourfoxy.browser.resolverTimer); }
         catch (e) {}
         bonjourfoxy.browser.resolverTimer = window.setTimeout(function(){
@@ -75,16 +75,21 @@ bonjourfoxy.browser = {
             }
         }, 30000);
     },
-    resolveListener: function(service, interfaceIndex, error, fqdn, hostname, port, key, value) {
+    resolveListener: function(service, interfaceIndex, error, fqdn, hostname, port, keyValues) {
         if (!error) {
             bonjourfoxy.browser.resolverContext.resolved = true;
+            var txt = ""
+            for (var i = 0; i < keyValues.length; i++) {
+                var keyValue = keyValues.queryElementAt(i, Components.interfaces.nsIVariant);
+                txt += keyValue + "\n";
+            }
             document.getElementById('tbInterfaceIndex').setAttribute('value', interfaceIndex);
             document.getElementById('tbServiceName').setAttribute('value', bonjourfoxy.browser.resolverContext.serviceName);
             document.getElementById('tbRegistrationType').setAttribute('value', bonjourfoxy.browser.resolverContext.regtype);
             document.getElementById('tbRegistrationDomain').setAttribute('value', bonjourfoxy.browser.resolverContext.domain);
             document.getElementById('tbHost').setAttribute('value', hostname);
             document.getElementById('tbPort').setAttribute('value', port);
-            document.getElementById('tbTextRecords').setAttribute('value', ["Key: ",key,"\nValue:",value].join(""));
+            document.getElementById('tbTextRecords').setAttribute('value', txt);
             document.getElementById('gpServiceInfo').setAttribute('style','');
         }
     }

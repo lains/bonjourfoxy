@@ -1,4 +1,4 @@
-<html>
+﻿<html>
 <head>
 <style>
 body {
@@ -142,10 +142,28 @@ bf.regCallback = function(svc, add, error, sName, rType, rDomain) {
 
 bf.testRegister = function() {
     try {
+        var kvPairPath = Components.classes["@mozilla.org/variant;1"]
+                         .createInstance(Components.interfaces.nsIWritableVariant);
+        var kvPairA = Components.classes["@mozilla.org/variant;1"]
+                     .createInstance(Components.interfaces.nsIWritableVariant);
+        var kvPairB = Components.classes["@mozilla.org/variant;1"]
+                     .createInstance(Components.interfaces.nsIWritableVariant);
+        var kvPairC = Components.classes["@mozilla.org/variant;1"]
+                     .createInstance(Components.interfaces.nsIWritableVariant);
+        var kvPairs = Components.classes["@mozilla.org/array;1"]
+                      .createInstance(Components.interfaces.nsIMutableArray);
+        kvPairPath.setFromVariant("path=/api/");
+        kvPairA.setFromVariant("test-a");
+        kvPairB.setFromVariant("test-b=");
+        kvPairC.setFromVariant("test-c=ha.個人.י כ.ЁЖ.あが");
+        kvPairs.appendElement(kvPairPath, 0);
+        kvPairs.appendElement(kvPairA, 0);
+        kvPairs.appendElement(kvPairB, 0);
+        kvPairs.appendElement(kvPairC, 0);
         bf.instances.register = bf.component.register(0, "BonjourFoxyTest",
                                                       "_http._tcp", "",
                                                       "bonjourfoxy.net", 80,
-                                                      "path", "/index.html",
+                                                      kvPairs,
                                                       bf.regCallback);
         bf.log("register", "created register instance");
     }
@@ -156,11 +174,20 @@ bf.testRegister = function() {
 
 /* resolve functions */
 
-bf.resolveCallback = function(svc, ifIndex, err, fqdn, hostname, port, key, value){
+bf.resolveCallback = function(svc, ifIndex, err, fqdn, hostname, port, kvPairsA){
     if (!err) {
+        kvPairs = "";
+        for (var i = 0; i < kvPairsA.length; i++) {
+            var kvPair = kvPairsA.queryElementAt(i, Components.interfaces.nsIVariant);
+            if (kvPairs == "") {
+                kvPairs = kvPair;
+            } else {
+                kvPairs += ", " + kvPair;
+            }
+        }
         bf.log("resolve", ["callback fired - resolved ",
                            "interface: " + ifIndex, "hostname: " + hostname,
-                           "port: " + port, "key: " + key, "value: " + value
+                           "port: " + port, "kvPairs: " + kvPairs
                           ].join(" "));
     } else {
         bf.log("resolve", "call back fired - error #" + error);
@@ -171,7 +198,7 @@ bf.testResolve = function() {
     try {
         bf.instances.resolve = bf.component.resolve(0, "BonjourFoxyTest",
                                                     "_http._tcp", "local.",
-                                                    "path", bf.resolveCallback);
+                                                    bf.resolveCallback);
         bf.log("resolve", "created resolve instance");
     }
     catch(err) {
