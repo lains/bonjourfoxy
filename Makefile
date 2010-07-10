@@ -42,7 +42,7 @@ nixdir:
 	mkdir -p nix/bonjourfoxy-${BF_VER}/{ext,src}
 	cp -r ext/ nix/bonjourfoxy-${BF_VER}/ext/
 	perl -pi -e "s/%%VER%%/$(BF_VER)/g" nix/bonjourfoxy-${BF_VER}/ext/install.rdf
-	cp src/*.{h,cpp,idl,js,html} nix/bonjourfoxy-${BF_VER}/src/
+	cp src/*.{h,cpp,idl,js} nix/bonjourfoxy-${BF_VER}/src/
 	cp src/Makefile.nix nix/bonjourfoxy-${BF_VER}/Makefile
 
 nixball: nixdir
