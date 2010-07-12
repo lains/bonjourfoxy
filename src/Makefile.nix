@@ -49,6 +49,8 @@ INSTALL_FILES = /install.rdf \
                 /content/transparent.gif \
                 /content/welcome.js \
                 /content/options.js \
+                /content/bfdnssdservicetest.html \
+                /content/bflogs.html \
                 /components/IBFDNSSDService.xpt \
                 /components/stub.js \
                 /components/BFServiceTracker.js \
