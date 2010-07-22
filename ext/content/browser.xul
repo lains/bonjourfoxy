@@ -4,6 +4,7 @@
 <window title="&bonjourfoxy.browser.label;" id="bonjourfoxyBrowser" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 <script src="chrome://bonjourfoxy/content/namespace.js"/>
 <script src="chrome://bonjourfoxy/content/lib.js"/>
+<script src="chrome://bonjourfoxy/content/servicetypes.js"/>
 <script src="chrome://bonjourfoxy/content/browser.js" />
 <vbox flex="1" style="padding: 0; margin: 0;">
     <listbox id="lbServices" flex="1" style="padding: 0; margin: 0;" onselect="bonjourfoxy.browser.resolveService(event);">

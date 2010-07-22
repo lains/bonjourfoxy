@@ -83,9 +83,12 @@ bonjourfoxy.browser = {
                 var keyValue = keyValues.queryElementAt(i, Components.interfaces.nsIVariant);
                 txt += keyValue + "\n";
             }
+            var regtype = bonjourfoxy.browser.resolverContext.regtype;
+            var regtypeDesc = bonjourfoxy.servicetypes.lookup(regtype);
+            var regtypeDisplay = regtype + " (" + regtypeDesc + ")";
             document.getElementById('tbInterfaceIndex').setAttribute('value', interfaceIndex);
             document.getElementById('tbServiceName').setAttribute('value', bonjourfoxy.browser.resolverContext.serviceName);
-            document.getElementById('tbRegistrationType').setAttribute('value', bonjourfoxy.browser.resolverContext.regtype);
+            document.getElementById('tbRegistrationType').setAttribute('value', regtypeDisplay);
             document.getElementById('tbRegistrationDomain').setAttribute('value', bonjourfoxy.browser.resolverContext.domain);
             document.getElementById('tbHost').setAttribute('value', hostname);
             document.getElementById('tbPort').setAttribute('value', port);
