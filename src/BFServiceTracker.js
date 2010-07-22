@@ -7,8 +7,7 @@ BFServiceTracker.prototype = {
     classID:          Components.ID("2a0884a8-40d8-4e12-afd6-26530b2e47c2"),
     contractID:       "@bonjourfoxy.net/BFServiceTracker;1",
     _xpcom_categories: [
-        {category: "xpcom-startup"},
-        {category: "xpcom-shutdown"},
+        {category: "profile-after-change"},
     ],
     QueryInterface: XPCOMUtils.generateQI([
         Components.interfaces.nsISupports,
@@ -110,18 +109,9 @@ BFServiceTracker.prototype = {
     },
     observe: function(subject, topic, data) {
         switch(topic)   {
-            case "xpcom-startup":
-                // this is run very early, right after XPCOM is initialized,
-                // but before user profile information is applied.
-                this.observerService().addObserver(this, "toplevel-window-ready", true);
-            break;
-            case "toplevel-window-ready":
+            case "profile-after-change":
                 if (!this._initCalled)  {
                     this._initCalled = true;
-                    this.observerService().removeObserver(this, "toplevel-window-ready");
-                    // still a little early - some UI weirdness is often
-                    // manifested under X11 if the alert service is used.
-                    // so come back in half a second...
                     this._initTimer = this.getTmrInst();
                     var tCallback = this.callInContext(function()    {
                         var dnssdSvc = this.dnssdSvc();
