@@ -7,6 +7,7 @@ BFServiceTracker.prototype = {
     classID:          Components.ID("2a0884a8-40d8-4e12-afd6-26530b2e47c2"),
     contractID:       "@bonjourfoxy.net/BFServiceTracker;1",
     _xpcom_categories: [
+        {category: "xpcom-startup"},
         {category: "profile-after-change"},
     ],
     QueryInterface: XPCOMUtils.generateQI([
@@ -109,6 +110,10 @@ BFServiceTracker.prototype = {
     },
     observe: function(subject, topic, data) {
         switch(topic)   {
+            case "xpcom-startup":
+                // Register for "profile-after-change" here for Firefox 3
+                this.observerService().addObserver(this, "profile-after-change", true);
+            break;
             case "profile-after-change":
                 if (!this._initCalled)  {
                     this._initCalled = true;
