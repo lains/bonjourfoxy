@@ -39,10 +39,14 @@ xpi: dir
 
 nixdir:
 	@echo Creating nix/bonjourfoxy-${BF_VER}
-	mkdir -p nix/bonjourfoxy-${BF_VER}/{ext,src}
+	mkdir -p nix/bonjourfoxy-${BF_VER}/ext
+	mkdir -p nix/bonjourfoxy-${BF_VER}/src
 	cp -r ext/ nix/bonjourfoxy-${BF_VER}/ext/
 	perl -pi -e "s/%%VER%%/$(BF_VER)/g" nix/bonjourfoxy-${BF_VER}/ext/install.rdf
-	cp src/*.{h,cpp,idl,js} nix/bonjourfoxy-${BF_VER}/src/
+	cp src/*.h nix/bonjourfoxy-${BF_VER}/src/
+	cp src/*.cpp nix/bonjourfoxy-${BF_VER}/src/
+	cp src/*.idl nix/bonjourfoxy-${BF_VER}/src/
+	cp src/*.js nix/bonjourfoxy-${BF_VER}/src/
 	cp src/Makefile.nix nix/bonjourfoxy-${BF_VER}/Makefile
 
 nixball: nixdir
