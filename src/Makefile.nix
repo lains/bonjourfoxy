@@ -3,7 +3,7 @@ CC = g++
 ifeq ($(shell uname -m),x86_64)
     SUFFIX = 64
 else
-    SUFFIX = 
+    SUFFIX =
 endif
 
 HEADERS = IBFDNSSDService.h
@@ -79,57 +79,19 @@ EEXTENSION_ID = bonjourfoxy\@${EXTENSION_ID_SUFFIX}
 TARGETDIR = ${EXTENSIONS_PATH}/${EXTENSION_ID}
 
 # Avahi includes
-AVAHI_PATH = /usr/include/avahi-compat-libdns_sd
-AVAHI_HEADER = ${AVAHI_PATH}/dns_sd.h
-AVAHI_INCLUDES = -I ${AVAHI_PATH}
+AVAHI_INCLUDES = $(shell pkg-config --cflags avahi-compat-libdns_sd)
+AVAHI_LIBS = $(shell pkg-config --libs avahi-compat-libdns_sd)
 
 # XR includes
-ifeq (exists,$(shell test -d /usr/include/xulrunner-1.9 && echo exists))
-    XR_INCLUDE_PATH = /usr/include/xulrunner-1.9
-else ifeq (exists,$(shell test -d /usr/include/xulrunner-sdk-1.9 && echo exists))
-    XR_INCLUDE_PATH = /usr/include/xulrunner-sdk-1.9
-else ifeq (exists,$(shell test -d /usr/include/xulrunner-${GRE_VER} && echo exists))
-    XR_INCLUDE_PATH = /usr/include/xulrunner-${GRE_VER}
-endif
-ifeq (exists,$(shell test -d ${XR_INCLUDE_PATH}/stable && echo exists))
-    XR_INCLUDES = -I ${XR_INCLUDE_PATH}/stable -I ${XR_INCLUDE_PATH}/unstable
-else
-    XR_INCLUDES = -I ${XR_INCLUDE_PATH}
-endif
-
-# NSPR includes
-ifeq (exists,$(shell test -d /usr/include/nspr && echo exists))
-    NSPR_INCLUDES = -I /usr/include/nspr
-else ifeq (exists,$(shell test -d /usr/include/nspr4 && echo exists))
-    NSPR_INCLUDES = -I /usr/include/nspr4
-endif
-
-# IDL
-ifeq (exists,$(shell test -d /usr/share/idl/xulrunner-1.9 && echo exists))
-    XR_IDL_PATH = /usr/share/idl/xulrunner-1.9
-else ifeq (exists,$(shell test -d /usr/share/idl/xulrunner-sdk-1.9 && echo exists))
-    XR_IDL_PATH = /usr/share/idl/xulrunner-sdk-1.9
-else ifeq (exists,$(shell test -d /usr/share/idl/xulrunner-${GRE_VER} && echo exists))
-    XR_IDL_PATH = /usr/share/idl/xulrunner-${GRE_VER}
-endif
+XR_INCLUDES = $(shell pkg-config --cflags libxul libxul-unstable)
+XR_LIBS = $(shell pkg-config --libs libxul libxul-unstable)
+XR_IDL_PATH = $(shell pkg-config --variable=idldir libxul)
 IDL_INCLUDES = -I ${XR_IDL_PATH}/stable -I ${XR_IDL_PATH}/unstable
-ifeq (exists,$(shell test -f /usr/lib/xulrunner-1.9/xpidl && echo exists))
-    XPIDL = /usr/lib/xulrunner-1.9/xpidl
-else ifeq (exists,$(shell test -f /usr/lib/xulrunner-${GRE_VER}/xpidl && echo exists))
-    XPIDL = /usr/lib/xulrunner-${GRE_VER}/xpidl
-endif
+#xpcom compiler path
+XPIDL = $(shell pkg-config --variable=sdkdir libxul-unstable)/bin/xpidl
 
-# Flags and libs
-ifeq (exists,$(shell test -d /usr/lib/xulrunner-sdk-1.9 && echo exists))
-    XR_LIB_PATH = /usr/lib/xulrunner-sdk-1.9
-else ifeq (exists,$(shell test -d /usr/lib/xulrunner-devel-1.9 && echo exists))
-    XR_LIB_PATH = /usr/lib/xulrunner-devel-1.9
-else ifeq (exists,$(shell test -d /usr/lib/xulrunner-devel-$(GRE_VER) && echo exists))
-    XR_LIB_PATH = /usr/lib/xulrunner-devel-${GRE_VER}
-endif
-CFLAGS                = -fPIC -fshort-wchar
-LDFLAGS               = -Wl,-rpath-link,${XR_LIB_PATH}/sdk -fshort-wchar
-LIBS                  = -lxpcomglue_s -lxpcom -lnspr4 -ldns_sd
+CFLAGS                = -fPIC
+LDFLAGS               = -Wl,-rpath-link,-fshort-wchar
 
 ifeq (src,$(notdir $(CURDIR)))
 %.xpt: %.idl
@@ -139,13 +101,13 @@ ifeq (src,$(notdir $(CURDIR)))
 	${XPIDL} -m header ${IDL_INCLUDES} $<
 
 BFDNSSDService$(SUFFIX).o: CBFDNSSDService.cpp IBFDNSSDService.h
-	${CC} ${CFLAGS} -w -c -o $@ -I . $(XR_INCLUDES) -DXP_UNIX $(NSPR_INCLUDES) $(AVAHI_INCLUDES) CBFDNSSDService.cpp
+	${CC} ${CFLAGS} -w -c -o $@ -I . $(XR_INCLUDES) -DXP_UNIX $(AVAHI_INCLUDES) CBFDNSSDService.cpp
 
 BFDNSSDServiceModule$(SUFFIX).o: CBFDNSSDServiceModule.cpp
-	${CC} ${CFLAGS} -w -c -o $@ -I . $(XR_INCLUDES) -DXP_UNIX $(NSPR_INCLUDES) $(AVAHI_INCLUDES) CBFDNSSDServiceModule.cpp
+	${CC} ${CFLAGS} -w -c -o $@ -I . $(XR_INCLUDES) -DXP_UNIX $(AVAHI_INCLUDES) CBFDNSSDServiceModule.cpp
 
 BFDNSSDService$(SUFFIX).so: BFDNSSDService$(SUFFIX).o BFDNSSDServiceModule$(SUFFIX).o
-	${CC} -shared -Wl,-z,defs -L$(XR_LIB_PATH)/sdk/lib -L$(XR_LIB_PATH)/bin ${LDFLAGS} -dynamiclib -o $@ $^ ${LIBS}
+	${CC} -shared -Wl,-z,defs $(AVAHI_LIBS) ${LDFLAGS} -dynamiclib -o $@ $^ $(XR_LIBS)
 
 clean:
 	rm -f ${ALL_OBJS}
@@ -157,18 +119,12 @@ else
 all: xpcom dir
 
 check:
-	@echo \ 
-	@echo -n XULRunner IDL folder "${XR_IDL_PATH}"
-	@test -d ${XR_IDL_PATH} && echo \ exists || (echo \ MISSING && false)
-	@echo -n XULRunner include folder "${XR_LIB_PATH}"
-	@test -d ${XR_INCLUDE_PATH} && echo \ exists || (echo \ MISSING && false)
-	@echo -n XULRunner lib folder "${XR_LIB_PATH}"
-	@test -d ${XR_LIB_PATH} && echo \ exists || (echo \ MISSING && false)
-	@echo -n Avahi Bonjour compatibility header "${AVAHI_HEADER}"
-	@test -f ${AVAHI_HEADER} && echo \ exists || (echo \ MISSING && false)
+	@echo -n XULRunner lib
+	@echo -n $(shell pkg-config --exists libxul) && echo \ exists  || (echo \ MISSING && false)
+	@echo -n Avahi lib
+	@echo -n $(shell pkg-config --exists avahi-compat-libdns_sd) && echo \ exists  || (echo \ MISSING && false)
 	@echo -n Extensions folder "${EXTENSIONS_FOLDER}"
 	@test -d ${EXTENSIONS_FOLDER} && echo \ exists || (echo \ MISSING && false)
-	@echo \ 
 
 xpcom: check
 	make -C src all -f ../Makefile
@@ -180,9 +136,9 @@ dir: xpcom
 	perl -pi -e "s/%%MAXVER%%/${FF_MAX_VER}/g" scratch/install.rdf
 	perl -pi -e "s/bonjourfoxy\@bonjourfoxy.net/${EEXTENSION_ID}/g" scratch/install.rdf
 	perl -pi -e "s/bonjourfoxy\@bonjourfoxy.net/${EEXTENSION_ID}/g" scratch/defaults/preferences/defaults.js
+	mkdir -p scratch/components
 	cp src/*.xpt src/*.js scratch/components
 	cp src/*.so scratch/lib/${FF_MAJOR_VER}
-	@echo \ 
 	@echo Extension staged in $(CURDIR)/scratch
 	@echo Run make install to install to ${DESTDIR}${TARGETDIR}
 
