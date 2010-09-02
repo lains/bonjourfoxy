@@ -1,8 +1,22 @@
-bonjourfoxy (0.5.1-1) unstable; urgency=low
+bonjourfoxy (0.8.0-1) unstable; urgency=low
 
-  * Initial release.
-  * Added a debian.inc distribution-specific include for Makefile
-  * Added a install target to Makefile
+  * Reworked the debian-specific files to be able to use dpkg-buildpackage
+    on the upstream sources
+  * Fixed build process for nix targets that was not copying several
+    important files needed for the components during make install
+  * Comments on 0.8.0 from upstream:
+  The Mozilla Add-ons team have okay'd release 0.8.0. This release adds
+  support for multiple entries in TXT records which allows the Bonjour
+  Browser to displays more information about resolved services. The Bonjour
+  Browser has also been enhanced to display a description of service types
+  it's familiar with.
+  The first alpha release of BonjourFoxy 0.8.0 exposes an updated API
+  allowing for multiple key-value pairs to be registered and retrieved for a
+  service. This new functionality is most evident in the Bonjour Browser
+  which now shows many more details about a service.
+  Additional enhancements for release 0.8.0 include an updated sidebar
+  interface and self-diagnostic utilities; however these changes are not
+  quite ready for this release.
 
- -- Lionel Ains <lains@gmx.net>  Mon, 07 Dec 2009 22:51:15 +0100
+ -- Lionel Ains <lains@gmx.net>  Wed, 25 Aug 2010 12:03:15 +0100
 

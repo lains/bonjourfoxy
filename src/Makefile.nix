@@ -13,7 +13,11 @@ MOD_OBJS = BFDNSSDServiceModule${SUFFIX}.o
 LIB_OBJS = BFDNSSDService${SUFFIX}.so
 ALL_OBJS = ${HEADERS} ${TYPELIB} ${IMP_OBJS} ${MOD_OBJS} ${LIB_OBJS}
 
-XR_EXEC := $(shell find /etc/gre.d/ -type f -print0 | xargs -0 sed -n -e 's/^GRE_PATH=//p' | sort -u | tail -n 1)/xulrunner
+XR_EXEC := $(shell find /etc/gre.d/ -type f -print0 | xargs -0 sed -n -e 's/^GRE_PATH=\(.*\)$$/\1\/xulrunner/p' | xargs ls -d 2>/dev/null | sort -n | tail -n 1)
+ifeq ($(XR_EXEC),)
+$(error Could not find xulrunner exec)
+endif
+
 GRE_VER := $(shell ${XR_EXEC} --gre-version)
 
 FF_FULL_VER := $(shell firefox --version|cut -d " " -f 3|sed "s/,$$//g")
@@ -86,7 +90,7 @@ AVAHI_LIBS = $(shell pkg-config --libs avahi-compat-libdns_sd)
 XR_INCLUDES = $(shell pkg-config --cflags libxul libxul-unstable)
 XR_LIBS = $(shell pkg-config --libs libxul libxul-unstable)
 XR_IDL_PATH = $(shell pkg-config --variable=idldir libxul)
-IDL_INCLUDES = -I ${XR_IDL_PATH}/stable -I ${XR_IDL_PATH}/unstable
+IDL_INCLUDES = -I ${XR_IDL_PATH} -I ${XR_IDL_PATH}/stable -I ${XR_IDL_PATH}/unstable
 #xpcom compiler path
 XPIDL = $(shell pkg-config --variable=sdkdir libxul-unstable)/bin/xpidl
 
@@ -116,7 +120,7 @@ all: ${ALL_OBJS}
 
 else
 
-all: xpcom dir
+all: build_ff_ver.inc xpcom dir
 
 check:
 	@echo -n XULRunner lib
@@ -128,6 +132,7 @@ check:
 
 xpcom: check
 	make -C src all -f ../Makefile
+	
 
 dir: xpcom
 	mkdir -p scratch scratch/lib/${FF_MAJOR_VER}
@@ -151,11 +156,21 @@ install:
 	install -d ${DESTDIR}${TARGETDIR}/content
 	install -d ${DESTDIR}${TARGETDIR}/components
 	for file in ${INSTALL_FILES}; do \
-        install -m644 scratch$${file} ${DESTDIR}${TARGETDIR}$${file}; \
-    done
+	  install -m644 scratch$${file} ${DESTDIR}${TARGETDIR}$${file}; \
+	  done
 
 clean:
 	rm -fr scratch/
 	make -C src clean -f ../Makefile
+	rm -f build_ff_ver.inc
 
 endif
+
+build_ff_ver.inc:
+	@echo "Creating build_ff_ver.inc summary file"
+	@echo "FF_FULL_VER=\$${FF_FULL_VER-'$(FF_FULL_VER)'}" > build_ff_ver.inc
+	@echo "FF_MAJOR_VER=\$${FF_MAJOR_VER-'$(FF_MAJOR_VER)'}"  >> build_ff_ver.inc
+	@echo "FF_MIN_VER=\$${FF_MIN_VER-'$(FF_MIN_VER)'}"  >> build_ff_ver.inc
+	@echo "FF_MAX_VER=\$${FF_MAX_VER-'$(FF_MAX_VER)'}" >> build_ff_ver.inc
+	@echo "XR_EXEC=\$${XR_EXEC-'$(XR_EXEC)'}" >> build_ff_ver.inc
+	@echo "FF_EXT_PATH='$(EXTENSIONS_PATH)'" >> build_ff_ver.inc

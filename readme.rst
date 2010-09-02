@@ -59,6 +59,21 @@ Variables:
 * ``MIN_VER`` - the minimum supported Firefox release (used to update install.rdf)
 * ``MAX_VER`` - the maximum supported Firefox release (used to update install.rdf)
 
+Building a .deb package for Debian or Ubuntu
+--------------------------------------------
+
+Move to the src/ folder
+Run dpkg-buildpackage -rfakeroot (you may need to install several debian and firefox (xulrunner)-related development packages in order to successfulluy build the .deb package
+We the package is built, a new .deb file will be created in the src/ folder, you can either install it manually:
+dpkg -i firefox-libbonjourfoxy_0.8.0-1_i386.deb
+Or use gdebi for example to solve dependencies if needed:
+gdebi firefox-libbonjourfoxy_0.8.0-1_i386.deb
+
+The .deb package will contain both the XPCOM libraries+the firefox extension, and will directly install bonjourfoxy for all users.
+The script in debian/adaptdistrib adapts dependencies for the correct xulrunner and iceweasel/firefox version used to build the XPCOM. It will also name the package according to the distribution (Iceweasel/Firefox for Debian/Ubuntu respectively)
+The debian build process will use the nix target and Makefile.nix to compile the XPCOM component
+The environment detected during compilation time is stored in a file located at nix/bonjourfoxy-*/build_ff_ver.inc
+
 Testing the Extension
 ---------------------
 

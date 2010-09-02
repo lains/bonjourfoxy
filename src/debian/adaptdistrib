@@ -1,0 +1,97 @@
+#!/bin/bash
+if [ $# -eq 0 ]; then
+	echo "$0: Missing argument" >&2
+	exit 2
+fi
+
+while [ $# -ne 0 ]
+do
+	param="$1"
+	shift
+	case param in
+		-p* )
+			THIS_PACKAGE=${param/#-p/}
+			;;
+		*)
+			include=$1
+			break;;
+	esac
+done
+
+INITIAL_THIS_PACKAGE="$THIS_PACKAGE"
+if [ -e "$include" ]; then
+	. "$include"	# Run the include file to get the relevant defines
+fi
+if [ -n "$INITIAL_THIS_PACKAGE" ]; then
+	THIS_PACKAGE="$INITIAL_THIS_PACKAGE"	# Override THIS_PACKAGE variable from include file if it was provided on the command line
+fi
+if [ -n "$XR_EXEC" ]; then
+	if [ -z "$XR_PACKAGE" ]; then
+		XR_PACKAGE=$(dpkg -S "$XR_EXEC" | cut -d ':' -f 1 | grep -v '\-dev$' | sort -u | tail -n 1)
+		if [ -z "$XR_PACKAGE" ]; then
+			echo "Could not find runtime package (not -dev) for xulrunner used at compilation time: $XR_EXEC" >&2
+			exit 1
+		fi
+	fi
+	if [ -z "$XR_VER" ]; then
+		XR_VER=$(dpkg -l "$XR_PACKAGE" | sed -n -e 's/^.i[[:blank:]][[:blank:]]*[^[:blank:]][^[:blank:]]*[[:blank:]][[:blank:]]*\([^[:blank:]][^[:blank:]]*\).*$/\1/p')
+	fi
+else
+	echo "No xulrunner exec file specified. Aborting" >&2
+	exit 1
+fi
+
+while [ $# -ne 0 ]
+do
+	filename="$1"
+	shift
+	if [ -e "$filename".template ]; then
+		cp -f "$filename".template "$filename"
+		perl -pi -e "s/%%THISPACKAGE%%/${THIS_PACKAGE}/g" "$filename"
+		if [ x"$filename" = x"control" ]; then
+			perl -pi -e "s/%%MINVER%%/${FF_MIN_VER}/g" "$filename"
+			perl -pi -e "s/%%MAXVER%%/${FF_MAX_VER}/g" "$filename"
+			perl -pi -e "s/%%FULLVER%%/${FF_FULL_VER}/g" "$filename"
+			perl -pi -e "s/%%MAJORVER%%/${FF_MAJOR_VER}/g" "$filename"
+			perl -pi -e "s/%%BROWSERNAME%%/${BROWSER_NAME}/g" "$filename"
+			perl -pi -e "s/%%BROWSERPACKAGE%%/${BROWSER_PACKAGE}/g" "$filename"
+			perl -pi -e "s/%%XRPACKAGE%%/${XR_PACKAGE}/g" "$filename"
+			perl -pi -e "s/%%XRVER%%/${XR_VER}/g" "$filename"
+		else	# In case we are working on the control file, for all other variables, we will use the substvars file for search/replace rather than doing it manually
+			if [ -z "$THIS_PACKAGE" ]; then
+				echo "Missing package name in THIS_PACKAGE. Aborting" >&2
+				exit 1
+			else
+				# The following block aims to provide a high limit on the firefox version if we can (computed from the FF_MAX_VER variable)
+				wildcarded_subversion=`echo "$FF_MAX_VER" | sed 's/^.*\.\([^\.][^\.]*\)\.\*/\1/'`
+				wildcarded_mainversion=`echo "$FF_MAX_VER" | sed 's/^\(.*\.\)[^\.][^\.]*\.\*/\1/'`
+				if [ -n "$wildcarded_subversion" ]; then
+					FF_MAX_CONDITION=$((++wildcarded_subversion))
+					if [ -n "$FF_MAX_CONDITION" ]; then
+						FF_MAX_CONDITION=" << ${wildcarded_mainversion}${FF_MAX_CONDITION}"
+					else
+						FF_MAX_CONDITION=''
+					fi
+				else
+					if echo "$FF_MAX_CONDITION" | grep -q '^[\.-[:alnum:]]*$'; then	# Accept only alnum chars, hypens and dots
+						FF_MAX_CONDITION='<= ${$FF_MAX_VER}'
+					else
+						FF_MAX_CONDITION=''
+					fi
+				fi
+				sed --in-place -e "/^adaptdistrib:XRDepends=/d" \
+				               -e "/^adaptdistrib:FFDepends=/d" \
+				               -e "/^adaptdistrib:FFName=/d" ./debian/"${THIS_PACKAGE}.substvars"
+				FF_DEPENDS_LINE="${BROWSER_PACKAGE} (>= ${FF_MIN_VER})"
+				if [ -n "$FF_MAX_CONDITION" ]; then
+					FF_DEPENDS_LINE="${FF_DEPENDS_LINE}, ${BROWSER_PACKAGE} (${FF_MAX_CONDITION})"
+				fi
+				cat >> ./debian/"${THIS_PACKAGE}.substvars" << EOF
+adaptdistrib:XRDepends=${XR_PACKAGE} (>= ${XR_VER})
+adaptdistrib:FFDepends=${FF_DEPENDS_LINE}
+adaptdistrib:FFName=${BROWSER_NAME}
+EOF
+			fi
+		fi
+	fi
+done

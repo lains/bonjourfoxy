@@ -1,0 +1,4 @@
+#This package is not created as the answer for an ITP bug
+source: new-package-should-close-itp-bug
+#This package stores image files for extensions according the web browser file location standards which may differ from the Debian conventions
+source: image-file-in-usr-lib

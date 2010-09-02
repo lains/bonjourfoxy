@@ -1,0 +1,21 @@
+Source: bonjourfoxy
+Priority: extra
+Maintainer: Lionel Ains <lains@gmx.net>
+Build-Depends: debhelper (>= 6), coreutils, binutils,
+               xulrunner-dev (>= 1.9), libnspr4-dev, libavahi-compat-libdnssd-dev
+Standards-Version: 3.7.3
+Section: libs
+Homepage: http://www.bonjourfoxy.net
+
+Package: %%THISPACKAGE%%
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${adaptdistrib:XRDepends}, libnspr4-0d,
+         ${adaptdistrib:FFDepends}, libavahi-compat-libdnssd1
+Suggests: avahi-ui-utils, avahi-utils
+Description: bonjourfoxy extension for ${adaptdistrib:FFName}
+ Bonjourfoxy ${adaptdistrib:FFName} extension+shared library.
+ This extension allows ${adaptdistrib:FFName} to make use of the Bonjour protocol
+ via the Avahi library.
+ After installing this package, the Bonjourfoxy extension will be automatically
+ added to ${adaptdistrib:FFName}

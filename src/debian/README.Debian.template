@@ -1,0 +1,18 @@
+bonjourfoxy for Debian
+----------------------
+
+This package adds the bonjourfoxy pluging to %%BROWSERNAME%%
+It includes the relevant XPCOM binary files to link %%BROWSERNAME%% with the Avahi library (that provides support for the Bonjour protocol)
+It also automatically installs the plugin to all instances of %%BROWSERNAME%% on the current platform (using the platform-wide install available from %%BROWSERNAME%% version 3.0 and above)
+https;//developer.mozilla.org/en/Installing_extensions
+The "platform-wide" install is used to oppose it to the usual "account-based" install where the user installs his/her plugin him/herself on his/her profile only
+
+When this package is installed for the first time, at the very first launch of each user's %%BROWSERNAME%%, a startup page provides more information about the features for bonjourfoxy.
+In order to browse the web services available on the local network, just click on the "Display Bonjourfoxy" button that is added to the toolbar.
+In order to browse all Bonjour-advertised services on the local network, go to %%BROWSERNAME%%'s menu Tools->Bonjour Browsers
+
+This package is using xulrunner version %%XRVER%% (requires package %%XRPACKAGE%% to be installed)
+
+The bonjourfoxy extension is compatible with %%BROWSERNAME%% version %%MINVER%% to %%MAXVER%%
+
+ -- Lionel Ains <lains@gmx.net>  Wed, 25 Aug 2010 12:03:15 +0100

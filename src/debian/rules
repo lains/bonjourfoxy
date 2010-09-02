@@ -10,35 +10,61 @@
 #export DH_VERBOSE=1
 
 # shared library versions
-version=0.5.1
+# Guess the real bonjourfoxy version from the Iceweasel/Firefox extension's rdf file
+version:=$(shell sed -n -e 's/^.*BF_VER[[:blank:]]*=[[:blank:]]*\(.*\)$$/\1/p' ../Makefile)
 major=0
+#The file below contains variables set during compilation to match with the specifics
+#of the system this package is being built on... all these variables can also be overriden
+#on the command line if autodetection is not wished
+built_local_versionsfile=../nix/bonjourfoxy-$(version)/build_ff_ver.inc
+DISTRIB=$(shell cat /etc/issue | sed -n -e 's/^.*debian.*$$/debian/ip' -e 's/^.*ubuntu.*$$/ubuntu/ip')
+ifeq ($(DISTRIB),debian)
+	THIS_PACKAGE:=iceweasel-libbonjourfoxy
+	BROWSER_NAME:=Iceweasel
+	BROWSER_PACKAGE:=iceweasel
+else
+	THIS_PACKAGE:=firefox-libbonjourfoxy
+	BROWSER_NAME:=Firefox
+	BROWSER_PACKAGE:=firefox
+endif
 
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	touch configure-stamp
 
-
 build: build-stamp
 build-stamp: configure-stamp  
 	dh_testdir
-	$(MAKE) -C src
+	@echo Building bonjourfoxy version $(version)
+	$(MAKE) -C .. nixdir
+	$(MAKE) -C "../nix/bonjourfoxy-$(version)" DESTDIR="$(CURDIR)/debian/tmp"
 	touch $@
+	echo "THIS_PACKAGE=\$${THIS_PACKAGE-'$(THIS_PACKAGE)'}" >> $(built_local_versionsfile)
+	echo "BROWSER_NAME=\$${BROWSER_NAME-'$(BROWSER_NAME)'}" >> $(built_local_versionsfile)
+	echo "BROWSER_PACKAGE=\$${BROWSER_PACKAGE-'$(BROWSER_PACKAGE)'}" >> $(built_local_versionsfile)
 
 clean: 
+	cp -f ./debian/control.empty ./debian/control
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
-	$(MAKE) -C src clean
-	dh_clean 
+	test ! -d "../nix/bonjourfoxy-$(version)" || $(MAKE) -C "../nix/bonjourfoxy-$(version)" clean
+	rm -f $(built_local_versionsfile)
+	$(MAKE) -C .. clean
+	dh_clean
+	rm -f ./debian/README.Debian
+	rm -f ./debian/*.install
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
-	dh_installdirs
-	$(MAKE) -C src DESTDIR=$(CURDIR)/debian/tmp install
-
+	dh_clean -k || ! grep -q '^Package:' debian/control
+	$(MAKE) -C "../nix/bonjourfoxy-$(version)" DESTDIR="$(CURDIR)/debian/tmp" install
+	debian/adaptdistrib -p$(THIS_PACKAGE) $(built_local_versionsfile) ./debian/control ./debian/README.Debian
+	sed -n -e 's/FF_EXT_PATH='"'"'[/]*\([^'"'"']*\)'"'"'/\1/p' $(built_local_versionsfile) > ./debian/"$(THIS_PACKAGE).install"
+#	$(error Could not extract extension path from FF_EXT_PATH variable in $(built_local_versionsfile))
+	dh_installdirs -p$(THIS_PACKAGE)
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -50,7 +76,7 @@ binary-arch: build install
 	dh_installchangelogs 
 	dh_installdocs
 	dh_installexamples
-	dh_install --sourcedir=$(CURDIR)/debian/tmp
+	dh_install --sourcedir="$(CURDIR)/debian/tmp"
 	dh_installman
 	dh_link
 	dh_strip
@@ -60,7 +86,7 @@ binary-arch: build install
 	dh_shlibdeps -l/usr/lib/xulrunner-devel-1.9/sdk/lib
 	dh_gencontrol
 	dh_md5sums
-	dh_builddeb
+	dh_builddeb -p$(THIS_PACKAGE)
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure
